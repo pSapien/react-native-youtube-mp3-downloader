@@ -1,5 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Linking, PermissionsAndroid } from 'react-native';
+
+import ytdl from "react-native-ytdl";
+import RNFetchBlob from 'rn-fetch-blob';
 
 const styles = StyleSheet.create({
   container: {
@@ -28,7 +31,14 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
 
-  }
+  },
+  downloadButtonContainer: {
+
+  },
+  downloadText: {
+    color: 'rgba(211,211,211,1)',
+    fontSize: 10,
+  },
 });
 
 export default function CardItem({ item }) {
@@ -53,7 +63,35 @@ export default function CardItem({ item }) {
             {channelTitle}
           </Text>
         </View>
+        <DownloadWithProgress videoId={item.id.videoId} songName={title} />
       </View>
     </View>
+  )
+}
+
+function DownloadWithProgress({ videoId, songName }) {
+  async function startDownload() {
+    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      ytdl.getInfo(videoId, {}, (err, info) => {
+        const format = ytdl.chooseFormat(info.formats, { quality: '134' });
+        const SongPromise = RNFetchBlob
+          .config({
+            fileCache: true,
+            addAndroidDownloads: {
+              useDownloadManager: true,
+              notification: true,
+              title: `${songName}.mp3`,
+            },
+          })
+          .fetch("GET", format.url)
+      });
+    }
+  }
+
+  return (
+    <TouchableOpacity style={styles.downloadButtonContainer} onPress={startDownload}>
+      <Text style={styles.downloadText}>Download Now</Text>
+    </TouchableOpacity>
   )
 }
